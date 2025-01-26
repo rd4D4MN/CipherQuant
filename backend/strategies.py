@@ -24,6 +24,14 @@ class RSIStrategy(Strategy):
         return data['Strategy_Return'].cumsum().iloc[-1]
 
 class MACDStrategy(Strategy):
-    def calculate_returns(self, data):
-        # MACD crossover logic
-        return data['returns'].max()
+    def calculate_returns(self, data: pd.DataFrame) -> float:
+        # Calculate MACD and Signal Line
+        exp1 = data['Close'].ewm(span=12, adjust=False).mean()
+        exp2 = data['Close'].ewm(span=26, adjust=False).mean()
+        macd = exp1 - exp2
+        signal = macd.ewm(span=9, adjust=False).mean()
+        
+        # Generate signals (MACD > Signal = BUY, MACD < Signal = SELL)
+        data['Signal'] = np.where(macd > signal, 1, -1)
+        data['Strategy_Return'] = data['Signal'].shift(1) * data['Daily_Return']
+        return data['Strategy_Return'].cumsum().iloc[-1]
