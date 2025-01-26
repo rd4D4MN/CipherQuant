@@ -1,0 +1,38 @@
+# .gitignore
+
+# Conda environment files
+.env/
+.conda/
+conda-env/
+envs/
+pkgs/
+
+# Python-specific files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+
+# IDE-specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Node.js and React files (if applicable)
+node_modules/
+dist/
+build/
+
+# Logs and local data
+logs/
+*.log
+*.csv
+*.json
+
+# Sensitive data
+.env
+*.env
+secrets.yml
