@@ -1,9 +1,23 @@
+from backend.strategies import RSIStrategy, MACDStrategy
 from flask import Flask, jsonify, abort
 from flask_sqlalchemy import SQLAlchemy
+import yfinance as yf
+from datetime import datetime, timedelta
+
+def fetch_data(symbol):
+    end_date = datetime.now()
+    start_date = end_date - timedelta(days=365)
+    return yf.download(symbol, start=start_date, end=end_date)
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///trading.db'
 db = SQLAlchemy(app)
+
+class Trade(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    symbol = db.Column(db.String(10), nullable=False)
+    strategy = db.Column(db.String(10), nullable=False)
+    return_value = db.Column(db.Float, nullable=False)
 
 # Error handling for invalid strategies
 @app.errorhandler(404)
