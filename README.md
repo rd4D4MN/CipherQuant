@@ -13,3 +13,9 @@ graph TD
     B --> C[SQL Database]
     B --> D[Strategy Engine]
     D --> E[ML Models]
+```
+
+## Setup
+1. Copy the example environment file:  
+   ```bash
+   cp .env.example .env

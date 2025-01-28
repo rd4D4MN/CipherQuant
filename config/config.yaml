@@ -1,0 +1,32 @@
+# Base configuration
+scraping:
+  coingecko:
+    base_url: "https://api.coingecko.com/api/v3"
+    endpoints:
+      ohlcv: "/coins/{coin}/ohlc"
+    params:
+      days: 90
+      vs_currency: "usd"
+    interval_seconds: 3600  # 1 hour
+    max_retries: 3
+    user_agents:
+      - "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+      - "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
+
+database:
+  sqlite:
+    path: "./data/crypto.db"
+    tables:
+      ohlcv: "ohlcv"
+      signals: "trading_signals"
+
+models:
+  lstm:
+    lookback_window: 60
+    epochs: 50
+    batch_size: 32
+    train_test_split: 0.8
+
+apis:
+  # For environment variables (see .env.example)
+  coingecko_api_key: ${COINGECKO_API_KEY}

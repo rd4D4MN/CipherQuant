@@ -35,4 +35,5 @@ logs/
 # Sensitive data
 .env
 *.env
+*.env.local
 secrets.yml
