@@ -3,7 +3,7 @@ scraping:
   coingecko:
     base_url: "https://api.coingecko.com/api/v3"
     endpoints:
-      ohlcv: "/coins/{coin}/ohlc"
+      ohlc: "coins/{coin}/market_chart"  # Changed from /coins/{coin}/ohlc
     params:
       days: 90
       vs_currency: "usd"
