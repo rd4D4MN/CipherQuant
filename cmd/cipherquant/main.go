@@ -3,24 +3,31 @@ package main
 import (
 	"fmt"
 	"log"
-	"os"
 
-	"github.com/rd4D4MN/CipherQuant/src/go_components"
-	// ^ This import path assumes you ran `go mod init github.com/rd4D4MN/CipherQuant`
-	//   in your project root. Adjust if your module name is different.
+	"github.com/piquette/finance-go/crypto"
+	"github.com/piquette/finance-go/quote"
 )
 
 func main() {
-	coins := []string{"bitcoin", "ethereum"}
-	tickers, err := go_components.ScrapeCoinGecko(coins)
-	if err != nil {
-		log.Fatal(err)
+	// Stock symbols to fetch
+	stocks := []string{"AAPL", "GOOGL", "MSFT"}
+	fmt.Println("Fetching stock prices...")
+	for _, symbol := range stocks {
+		q, err := quote.Get(symbol)
+		if err != nil {
+			log.Fatalf("Error fetching stock data for %s: %v", symbol, err)
+		}
+		fmt.Printf("Stock: %s | Price: $%.2f\n", q.ShortName, q.RegularMarketPrice)
 	}
 
-	fmt.Println("Scrape successful! Retrieved the following prices:")
-	for _, t := range tickers {
-		fmt.Printf("- %s: $%.2f\n", t.Symbol, t.CurrentPrice)
+	// Crypto symbols to fetch
+	cryptos := []string{"BTC-USD", "ETH-USD"}
+	fmt.Println("Fetching crypto prices...")
+	for _, symbol := range cryptos {
+		q, err := crypto.Get(symbol)
+		if err != nil {
+			log.Fatalf("Error fetching crypto data for %s: %v", symbol, err)
+		}
+		fmt.Printf("Crypto: %s | Price: $%.2f\n", q.ShortName, q.RegularMarketPrice)
 	}
-
-	os.Exit(0)
 }
