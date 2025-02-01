@@ -5,14 +5,14 @@
 
 # CipherQuant
 
-CipherQuant is a comprehensive platform for crypto data analysis and trading strategy backtesting. It integrates web scraping, API-based data ingestion, and advanced strategy engines to provide reliable insights and simulation tools.
+CipherQuant is a comprehensive platform for crypto and finance data analysis and trading strategy backtesting. It integrates web scraping, API-based data ingestion, and advanced strategy engines to provide reliable insights and simulation tools.
 
 <!-- Badges -->
-<p align="center">
+<!-- <p align="center">
   [![Build Status](https://img.shields.io/github/actions/workflow/status/rd4D4MN/CipherQuant/build.yml?branch=main)](https://github.com/rd4D4MN/CipherQuant/actions)
   [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
   [![Coverage](https://img.shields.io/codecov/c/github/rd4D4MN/CipherQuant)](https://codecov.io/gh/rd4D4MN/CipherQuant)
-</p>
+</p> -->
 
 <!-- Additional Context: Live Demo or Resource Links -->
 <!-- <p align="center">
