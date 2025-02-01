@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/rd4D4MN/CipherQuant/go_components"
+	"github.com/rd4D4MN/CipherQuant/src/go_components"
 	// ^ This import path assumes you ran `go mod init github.com/rd4D4MN/CipherQuant`
 	//   in your project root. Adjust if your module name is different.
 )

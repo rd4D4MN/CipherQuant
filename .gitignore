@@ -14,6 +14,8 @@ __pycache__/
 *.pyd
 *.db
 *.sqlite3
+.pytest_cache
+
 
 # IDE-specific files
 .vscode/
@@ -37,3 +39,14 @@ logs/
 *.env
 *.env.local
 secrets.yml
+
+# Go specific
+/vendor/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Github-specific files
+.github/workflows/
