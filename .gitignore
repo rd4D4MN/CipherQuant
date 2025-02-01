@@ -40,6 +40,15 @@ logs/
 *.env.local
 secrets.yml
 
+# Temporarily ignore workflow files during development
+.github/workflows/*.yml
+.github/workflows/*.yaml
+
+# But allow .github directory structure
+!.github/
+!.github/workflows/
+
+
 # Go specific
 /vendor/
 *.exe
@@ -47,6 +56,3 @@ secrets.yml
 *.dll
 *.so
 *.dylib
-
-# Github-specific files
-.github/workflows/
