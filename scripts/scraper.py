@@ -1,93 +1,108 @@
 import requests
+import random
+import yaml
+import time
+from pathlib import Path
+from itertools import cycle
 from fake_useragent import UserAgent
 from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
-from pydantic import BaseModel, ValidationError
-from typing import List, Dict, Any
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
-class OHLCVData(BaseModel):
-    timestamp: int
-    open: float
-    high: float
-    low: float
-    close: float
-    volume: float
+# Load config
+CONFIG_PATH = Path(__file__).parent.parent / "config" / "config.yaml"
+with open(CONFIG_PATH, "r") as f:
+    config = yaml.safe_load(f)
+
+class ProxyManager:
+    """Manages proxy rotation, failure handling, and testing"""
+
+    def __init__(self, proxy_list, fail_threshold=3):
+        self.proxy_list = proxy_list.copy()
+        self.failed_proxies = {}
+        self.fail_threshold = fail_threshold
+        self.proxy_cycle = cycle(self.proxy_list)
+
+    def get_proxy(self):
+        """Returns the next available proxy"""
+        if not self.proxy_list:
+            raise Exception("No working proxies available")
+        return next(self.proxy_cycle)
+
+    def mark_failed(self, proxy):
+        """Tracks failed proxy and removes it if it exceeds threshold"""
+        self.failed_proxies[proxy] = self.failed_proxies.get(proxy, 0) + 1
+        if self.failed_proxies[proxy] >= self.fail_threshold:
+            self.proxy_list.remove(proxy)
+            print(f"❌ Proxy removed: {proxy}")
+
+    def test_proxies(self):
+        """Tests proxies and keeps only working ones"""
+        def test_proxy(proxy):
+            try:
+                response = requests.get(
+                    "https://api.ipify.org?format=json",
+                    proxies={"http": proxy, "https": proxy},
+                    timeout=5
+                )
+                return proxy if response.status_code == 200 else None
+            except:
+                return None
+
+        print("🔄 Testing proxies...")
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            results = {executor.submit(test_proxy, p): p for p in self.proxy_list}
+        
+        self.proxy_list = [future.result() for future in as_completed(results) if future.result()]
+        self.proxy_cycle = cycle(self.proxy_list)  # Update cycle with working proxies
+        print(f"✅ {len(self.proxy_list)} working proxies found.")
 
 class WebScraper:
-    def __init__(self, config_handler):
-        self.config = config_handler.config.scraping['coingecko']
-        self.session = requests.Session()
-        retries = Retry(total=self.config.max_retries)
-        self.session.mount('http://', HTTPAdapter(max_retries=retries))
+    """Handles scraping with proxy rotation and user-agent spoofing"""
+
+    def __init__(self):
+        self.config = config
+        self.session = self._create_session()
         self.user_agent = UserAgent()
+        self.proxy_manager = ProxyManager(self.config["scraping"]["proxy_list"])
+        self.proxy_manager.test_proxies()  # Remove bad proxies before starting
 
-    def scrape(self, url: str, params: dict = None) -> Any:
-        """
-        Make HTTP GET request with retry logic
-        """
+    def _create_session(self):
+        """Creates a session with retry logic"""
+        session = requests.Session()
+        retries = Retry(total=3, backoff_factor=1, status_forcelist=[500, 502, 503, 504])
+        session.mount("http://", HTTPAdapter(max_retries=retries))
+        session.mount("https://", HTTPAdapter(max_retries=retries))
+        return session
+
+    def scrape(self, url, params=None):
+        """Performs web scraping with proxy rotation"""
         headers = {"User-Agent": self.user_agent.random}
-        response = self.session.get(url, headers=headers, params=params, timeout=10)
-        response.raise_for_status()
-        return response.json()
-
-    def parse_and_validate(self, raw_data: List[Dict[str, Any]]) -> List[OHLCVData]:
-        validated_data = []
-        for item in raw_data:
+        
+        for attempt in range(self.config["scraping"]["coingecko"]["max_retries"]):
+            proxy = self.proxy_manager.get_proxy()
             try:
-                validated_data.append(OHLCVData(**item))
-            except ValidationError as e:
-                print(f"Data validation error: {e}")
-        return validated_data
+                response = self.session.get(
+                    url, headers=headers, params=params, proxies={"http": proxy, "https": proxy}, timeout=10
+                )
+                response.raise_for_status()
+                return response.json()
+            except requests.RequestException as e:
+                print(f"⚠️ Attempt {attempt + 1} failed with proxy {proxy}: {e}")
+                self.proxy_manager.mark_failed(proxy)
+                time.sleep(2)  # Wait before retrying
 
-    def scrape_coingecko(self, endpoint: str, params: dict = None) -> List[OHLCVData]:
-        """
-        Scrape data from CoinGecko API
-        Args:
-            endpoint: API endpoint
-            params: Optional query parameters
-        Returns:
-            List of OHLCV data
-        """
-        url = f"{self.config.base_url}/{endpoint}"
-        raw_data = self.scrape(url, params)
-        parsed_data = self._parse_coingecko_response(raw_data)
-        return self.parse_and_validate(parsed_data)
+        print("❌ All attempts failed.")
+        return None
 
-    def scrape_binance(self, endpoint: str, params: Dict[str, Any]) -> List[OHLCVData]:
-        url = f"https://api.binance.com/api/v3/{endpoint}"
-        raw_data = self.scrape(url, params=params)
-        parsed_data = self._parse_binance_response(raw_data)
-        return self.parse_and_validate(parsed_data)
+# Example Usage
+if __name__ == "__main__":
+    scraper = WebScraper()
+    url = f"{config['scraping']['coingecko']['base_url']}/coins/bitcoin/market_chart"
+    params = config["scraping"]["coingecko"]["params"]
+    data = scraper.scrape(url, params)
 
-    def _parse_coingecko_response(self, data: Dict[str, List[List[float]]]) -> List[Dict[str, Any]]:
-        """Parse CoinGecko market chart response into format compatible with OHLCVData model"""
-        parsed_data = []
-        
-        if not isinstance(data, dict) or 'prices' not in data:
-            return parsed_data
-            
-        prices = data['prices']
-        volumes = data.get('total_volumes', [])
-        
-        # Create a volume lookup dictionary
-        volume_dict = {int(ts): vol for ts, vol in volumes}
-        
-        for price_data in prices:
-            timestamp = int(price_data[0])  # Timestamp in milliseconds
-            close_price = float(price_data[1])
-            
-            parsed_item = {
-                "timestamp": timestamp,
-                "open": close_price,  # Use close as open since we only have price points
-                "high": close_price,
-                "low": close_price,
-                "close": close_price,
-                "volume": volume_dict.get(timestamp, 0.0)
-            }
-            parsed_data.append(parsed_item)
-        
-        return parsed_data
-
-    def _parse_binance_response(self, data: Any) -> List[Dict[str, Any]]:
-        # Implement parsing logic specific to Binance's API response
-        pass
+    if data:
+        print(f"✅ Scraped {len(data)} data points successfully.")
+    else:
+        print("❌ Scraping failed.")

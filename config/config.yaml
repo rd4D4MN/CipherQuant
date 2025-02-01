@@ -3,15 +3,33 @@ scraping:
   coingecko:
     base_url: "https://api.coingecko.com/api/v3"
     endpoints:
-      ohlc: "coins/{coin}/market_chart"  # Changed from /coins/{coin}/ohlc
+      ohlc: "coins/{coin}/market_chart"
     params:
       days: 90
       vs_currency: "usd"
     interval_seconds: 3600  # 1 hour
     max_retries: 3
+    retry_backoff_factor: 2  # Exponential backoff for retries
+    rate_limit: 60  # requests per minute
     user_agents:
       - "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
       - "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
+  proxy_list:
+    # Rotating proxy providers (Replace with real working proxies)
+    - "http://username:[email protected]:8080"
+    - "http://username:[email protected]:8080"
+    - "http://username:[email protected]:8080"
+    - "socks5://username:[email protected]:1080"
+    fail_threshold: 3  # Remove proxy after 3 failures
+    rotation_strategy: "random"  # Options: sequential, random
+  crunchbase:
+    base_url: "https://api.crunchbase.com/api/v4"
+    endpoints:
+      organization: "entities/organizations/{org_id}"
+    rate_limit: 50  # requests per minute
+  yahoo_finance:
+    base_url: "https://query1.finance.yahoo.com/v8/finance/chart"
+    rate_limit: 100  # requests per minute
 
 database:
   sqlite:
@@ -27,6 +45,24 @@ models:
     batch_size: 32
     train_test_split: 0.8
 
+logging:
+  enabled: true
+  log_file: "./logs/scraper.log"
+  level: "INFO"  # Options: DEBUG, INFO, WARNING, ERROR
+
+error_handling:
+  max_retries: 5
+  retry_backoff_factor: 2  # Exponential backoff strategy
+
 apis:
   # For environment variables (see .env.example)
   coingecko_api_key: ${COINGECKO_API_KEY}
+  crunchbase_api_key: ${CRUNCHBASE_API_KEY}
+  yahoo_api_key: ${YAHOO_FINANCE_API_KEY}  # Add Yahoo API key if needed
+  headers:
+    coingecko: 
+      Authorization: "Bearer ${COINGECKO_API_KEY}"
+    crunchbase: 
+      Authorization: "Bearer ${CRUNCHBASE_API_KEY}"
+    yahoo_finance:
+      Authorization: "Bearer ${YAHOO_FINANCE_API_KEY}"
