@@ -1,16 +1,16 @@
 import os
-import yfinance as yf
 import psycopg2
 import pandas as pd
+import yfinance as yf
 from dotenv import load_dotenv
-from datetime import datetime
+from datetime import datetime, timedelta
 
-# Load .env variables
+# Load environment variables
 load_dotenv()
 
 # Database credentials
-DB_HOST = os.getenv("DB_HOST", "localhost")
-DB_PORT = os.getenv("DB_PORT", "5432")
+DB_HOST = os.getenv("DB_HOST")
+DB_PORT = os.getenv("DB_PORT")
 DB_USER = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_NAME = os.getenv("DB_NAME")
@@ -28,35 +28,27 @@ cur = conn.cursor()
 stocks = ["AAPL", "GOOGL", "MSFT"]
 
 for symbol in stocks:
-    stock_info = yf.Ticker(symbol).history(period="max")
-    if stock_info.empty:
-        print(f"⚠️ No data for {symbol}")
+    # 🔍 Step 1: Get the latest date available in the database
+    cur.execute("SELECT MAX(price_date) FROM prices WHERE symbol = %s;", (symbol,))
+    last_date = cur.fetchone()[0]
+
+    if last_date is None:
+        print(f"⚠️ No data found for {symbol}, fetching full history...")
+        start_date = "1980-01-01"  # Fetch all data for first-time setup
+    else:
+        start_date = last_date + timedelta(days=1)  # Fetch from the next missing date
+
+    today = datetime.today().date()
+    print(f"📊 Fetching {symbol} from {start_date} to {today}...")
+
+    # 🔍 Step 2: Fetch only missing data
+    df = yf.download(symbol, start=start_date, end=today)
+
+    if df.empty:
+        print(f"⚠️ No new data for {symbol}. Skipping...")
         continue
 
-    first_date = stock_info.index[0].date()
-    today = datetime.today().date()
-
-    print(f"📊 Fetching {symbol} from {first_date} to {today}...")
-
-    df = yf.download(symbol, start=first_date, end=today)
-
-    # 🔍 Debug: Print first few rows before cleaning
-    print(f"\n🔍 First few rows of {symbol} data before cleaning:\n", df.head())
-
-    # **Fix Multi-Index Issue Properly**
-    if isinstance(df.columns, pd.MultiIndex):
-        df.columns = df.columns.droplevel(0)  # Drops the "Ticker" level
-
-    # **Ensure the first row is not being used as a header**
-    if df.columns[0] in stocks:  # If column names are tickers, something is wrong
-        df.reset_index(inplace=True)  # Ensure Date is a proper column
-        df.columns = ["date", "open", "high", "low", "close", "volume"]  # Assign correct column names
-
-    # **Ensure proper column renaming**
     df = df.rename(columns=lambda x: x.strip().replace(" ", "_").lower())
-
-    # 🔍 Debug: Print renamed DataFrame columns
-    print(f"\n🔍 Final Renamed Columns for {symbol}:", df.columns.tolist())
 
     for row in df.itertuples(index=True, name="StockData"):
         try:
@@ -66,12 +58,12 @@ for symbol in stocks:
                 ON CONFLICT (symbol, price_date) DO NOTHING
             """, (
                 symbol,
-                row.date if hasattr(row, "date") else row.Index.date(),  # Ensure correct date column
-                getattr(row, "open", None) if not pd.isna(getattr(row, "open", None)) else None,
-                getattr(row, "high", None) if not pd.isna(getattr(row, "high", None)) else None,
-                getattr(row, "low", None) if not pd.isna(getattr(row, "low", None)) else None,
-                getattr(row, "close", None) if not pd.isna(getattr(row, "close", None)) else None,
-                int(getattr(row, "volume", 0)) if not pd.isna(getattr(row, "volume", 0)) else None
+                row.Index.date(),
+                getattr(row, "open", None),
+                getattr(row, "high", None),
+                getattr(row, "low", None),
+                getattr(row, "close", None),
+                int(getattr(row, "volume", 0))
             ))
         except Exception as e:
             print(f"⚠️ Error inserting {symbol} on {row.Index.date()}: {e}")
@@ -81,4 +73,4 @@ for symbol in stocks:
 
 cur.close()
 conn.close()
-print("\n✅ Data inserted successfully.")
+print("\n✅ Data updated successfully.")

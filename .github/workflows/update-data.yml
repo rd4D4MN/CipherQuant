@@ -2,7 +2,7 @@ name: Update Finance Data
 on:
   schedule:
     - cron: '0 22 * * *'  # Runs every day at 10 PM UTC (After US market close)
-  workflow_dispatch:  # Allows manual execution from GitHub UI
+  workflow_dispatch:
 
 jobs:
   update-database:
@@ -25,15 +25,8 @@ jobs:
       - name: Install Python Dependencies
         run: pip install yfinance psycopg2-binary python-dotenv
 
-      - name: Run Update Script
+      - name: Append New Data to Database
         run: python scripts/populate_historical_data.py
-
-      - name: Retry if Failure
-        if: failure()
-        run: |
-          echo "❌ Update failed. Retrying in 30 minutes..."
-          sleep 1800
-          python scripts/populate_historical_data.py
 
       - name: Upload Logs
         if: always()
