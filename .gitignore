@@ -47,7 +47,7 @@ secrets.yml
 # But allow .github directory structure
 !.github/
 !.github/workflows/
-
+!.github/workflows/update-data.yml
 
 # Go specific
 /vendor/
@@ -56,3 +56,18 @@ secrets.yml
 *.dll
 *.so
 *.dylib
+
+
+# Shell scripts
+scripts\create_issues.sh
+scripts\pipeline.py
+scripts\scraper.py
+
+# Backend
+src\backend\app.py
+
+# Tests
+tests\backend
+
+# Queries
+queries\top_investors.sql

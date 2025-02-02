@@ -1,0 +1,43 @@
+name: Update Finance Data
+on:
+  schedule:
+    - cron: '0 22 * * *'  # Runs every day at 10 PM UTC (After US market close)
+  workflow_dispatch:  # Allows manual execution from GitHub UI
+
+jobs:
+  update-database:
+    runs-on: ubuntu-latest
+    env:
+      DB_HOST: ${{ secrets.DB_HOST }}
+      DB_PORT: ${{ secrets.DB_PORT }}
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      DB_NAME: ${{ secrets.DB_NAME }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Set Up Python
+        uses: actions/setup-python@v3
+        with:
+          python-version: '3.9'
+
+      - name: Install Python Dependencies
+        run: pip install yfinance psycopg2-binary python-dotenv
+
+      - name: Run Update Script
+        run: python scripts/populate_historical_data.py
+
+      - name: Retry if Failure
+        if: failure()
+        run: |
+          echo "❌ Update failed. Retrying in 30 minutes..."
+          sleep 1800
+          python scripts/populate_historical_data.py
+
+      - name: Upload Logs
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: update-logs
+          path: logs/update_log.txt
