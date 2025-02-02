@@ -29,11 +29,11 @@ dist/
 build/
 
 # Logs and local data
-logs/
-*.log
-*.csv
-*.json
-!logs/update_log.txt
+# logs/
+# *.log
+# *.csv
+# *.json
+
 
 # Sensitive data
 .env
