@@ -14,23 +14,39 @@ jobs:
       DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
       DB_NAME: ${{ secrets.DB_NAME }}
     steps:
-      - name: Checkout Repository
+      - name: 📥 Checkout Repository
         uses: actions/checkout@v2
 
-      - name: Set Up Python
+      - name: 🛠 Set Up Python
         uses: actions/setup-python@v3
         with:
           python-version: '3.9'
 
-      - name: Install Python Dependencies
-        run: pip install yfinance psycopg2-binary python-dotenv
+      - name: 🏗 Install Python Dependencies
+        run: |
+          echo "🔹 Installing Python dependencies..."
+          pip install yfinance psycopg2-binary python-dotenv
 
-      - name: Append New Data to Database
-        run: python scripts/populate_historical_data.py
+      - name: 🛠 Verify Database Connection
+        run: |
+          echo "🔹 Checking database connection..."
+          PGPASSWORD=${{ secrets.DB_PASSWORD }} psql -h ${{ secrets.DB_HOST }} -U ${{ secrets.DB_USER }} -d ${{ secrets.DB_NAME }} -c "SELECT NOW();"
 
-      - name: Upload Logs
+      - name: 🚀 Run Data Update Script
+        run: |
+          echo "🔹 Starting data update script..."
+          python scripts/populate_historical_data.py
+          echo "✅ Data update script finished."
+
+      - name: 📂 Upload Logs
         if: always()
         uses: actions/upload-artifact@v3
         with:
           name: update-logs
           path: logs/update_log.txt
+
+      - name: ❌ Show Errors if Workflow Fails
+        if: failure()
+        run: |
+          echo "⚠️ ERROR: Data update failed."
+          echo "📂 Check the logs in 'update-logs' artifact."
