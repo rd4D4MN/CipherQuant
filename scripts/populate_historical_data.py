@@ -2,8 +2,25 @@ import os
 import psycopg2
 import pandas as pd
 import yfinance as yf
+import logging
+import time
 from dotenv import load_dotenv
-from datetime import datetime, timedelta
+from datetime import datetime
+from pandas.tseries.offsets import BDay  # Business day offset
+
+# Set up logging
+logging.basicConfig(
+    filename="logs/update_log.txt",
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+)
+
+
+def log(message):
+    """Log messages to both console and file."""
+    print(message)
+    logging.info(message)
+
 
 # Load environment variables
 load_dotenv()
@@ -25,52 +42,92 @@ conn = psycopg2.connect(
 )
 cur = conn.cursor()
 
+# Define stock symbols to track
 stocks = ["AAPL", "GOOGL", "MSFT"]
 
+# Get all latest dates in one query (optimization)
+cur.execute("SELECT symbol, MAX(price_date) FROM prices GROUP BY symbol;")
+last_dates = dict(cur.fetchall())  # Stores latest price_date for each stock
+
+# Determine today's date (handling market open cases)
+today = datetime.today()
+if today.hour < 16:  # If it's before market close, use the last business day
+    today = today - BDay(1)
+today = today.date()  # Convert to date only
+
 for symbol in stocks:
-    # 🔍 Step 1: Get the latest date available in the database
-    cur.execute("SELECT MAX(price_date) FROM prices WHERE symbol = %s;", (symbol,))
-    last_date = cur.fetchone()[0]
+    last_date = last_dates.get(symbol, None)
 
+    # Determine start date for fetching new data
     if last_date is None:
-        print(f"⚠️ No data found for {symbol}, fetching full history...")
-        start_date = "1980-01-01"  # Fetch all data for first-time setup
+        log(f"⚠️ No data found for {symbol}, fetching full history...")
+        start_date = "1980-01-01"
     else:
-        start_date = last_date + timedelta(days=1)  # Fetch from the next missing date
+        # Ensure last_date is a datetime.date object
+        if isinstance(last_date, datetime):
+            last_date = last_date.date()
+        else:
+            last_date = pd.to_datetime(last_date).date()
 
-    today = datetime.today().date()
-    print(f"📊 Fetching {symbol} from {start_date} to {today}...")
+        # Ensure start_date is a business day (skip weekends & holidays)
+        start_date = (pd.to_datetime(last_date) + BDay(1)).date()
 
-    # 🔍 Step 2: Fetch only missing data
-    df = yf.download(symbol, start=start_date, end=today)
+        # Skip API call if data is already up to date
+        if start_date >= today:
+            log(f"✅ {symbol} is already up to date. Skipping...")
+            continue
+
+    log(f"📊 Fetching {symbol} from {start_date} to {today}...")
+
+    # Fetch stock data with retry mechanism to handle API failures
+    MAX_RETRIES = 3
+    for attempt in range(MAX_RETRIES):
+        try:
+            df = yf.download(symbol, start=start_date, end=today)
+            break  # Success, exit retry loop
+        except Exception as e:
+            log(f"⚠️ Attempt {attempt+1} failed for {symbol}: {e}")
+            time.sleep(5)  # Wait 5 seconds before retrying
+    else:
+        log(f"❌ Failed to fetch {symbol} after {MAX_RETRIES} attempts. Skipping...")
+        continue  # Skip this stock if API fails
 
     if df.empty:
-        print(f"⚠️ No new data for {symbol}. Skipping...")
+        log(f"⚠️ No new data for {symbol}. Skipping...")
         continue
 
+    # Standardize column names
     df = df.rename(columns=lambda x: x.strip().replace(" ", "_").lower())
 
+    # Insert new data into database
     for row in df.itertuples(index=True, name="StockData"):
         try:
+            # Ensure we are not inserting future dates
+            row_date = row.Index.date()
+            if row_date > today:
+                log(f"⚠️ Skipping future date {row_date} for {symbol}.")
+                continue
+
+            volume = getattr(row, "volume", None)
             cur.execute("""
                 INSERT INTO prices (symbol, price_date, open_price, high_price, low_price, close_price, volume, market_source)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, 'stock')
                 ON CONFLICT (symbol, price_date) DO NOTHING
             """, (
                 symbol,
-                row.Index.date(),
+                row_date,
                 getattr(row, "open", None),
                 getattr(row, "high", None),
                 getattr(row, "low", None),
                 getattr(row, "close", None),
-                int(getattr(row, "volume", 0))
+                int(volume) if volume is not None else None
             ))
         except Exception as e:
-            print(f"⚠️ Error inserting {symbol} on {row.Index.date()}: {e}")
+            log(f"⚠️ Error inserting {symbol} on {row_date}: {e}")
             conn.rollback()
 
     conn.commit()
 
 cur.close()
 conn.close()
-print("\n✅ Data updated successfully.")
+log("\n✅ Data updated successfully.")
