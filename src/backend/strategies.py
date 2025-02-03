@@ -37,7 +37,39 @@ class RSIStrategy(Strategy):
         self.position_size = 1.0
         self.stop_loss = 0.02    # 2% stop loss
         self.take_profit = 0.05  # 5% take profit
-        
+    
+    def calculate_indicators(self, data: pd.DataFrame) -> pd.DataFrame:
+        """Calculate RSI and other technical indicators"""
+        try:
+            # Copy input data to avoid modifications
+            df = data.copy()
+            
+            # Calculate daily returns
+            df['Daily_Return'] = df['Close'].pct_change()
+            
+            # Calculate RSI with data validation
+            delta = df['Close'].diff()
+            gain = (delta.where(delta > 0, 0)).fillna(0)
+            loss = (-delta.where(delta < 0, 0)).fillna(0)
+            
+            # Use EMA for smoother calculation
+            avg_gain = gain.ewm(span=self.rsi_period, adjust=False).mean()
+            avg_loss = loss.ewm(span=self.rsi_period, adjust=False).mean()
+            
+            rs = avg_gain / avg_loss.replace(0, np.inf)
+            df['RSI'] = 100 - (100 / (1 + rs))
+            
+            # Fill any remaining NaN values
+            df['RSI'] = df['RSI'].fillna(50)
+            df['Daily_Return'] = df['Daily_Return'].fillna(0)
+            
+            logger.info(f"RSI calculation completed. Range: {df['RSI'].min():.2f} to {df['RSI'].max():.2f}")
+            
+            return df
+            
+        except Exception as e:
+            logger.error(f"Error calculating indicators: {str(e)}")
+            raise  
     def calculate_returns(self, data: pd.DataFrame) -> float:
         try:
             data = self.preprocess_data(data)
