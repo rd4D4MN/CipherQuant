@@ -19,21 +19,39 @@ jobs:
       - name: Install Dependencies
         run: pip install yfinance psycopg2-binary python-dotenv
 
-      - name: Test Local Database Connection (Using dotenv)
+      - name: Set UTF-8 Encoding (Windows Fix)
+        run: chcp 65001
+        shell: cmd
+
+      - name: Load Environment Variables and Debug
         run: |
           python -c "
-          import psycopg2
-          from dotenv import load_dotenv
           import os
+          from dotenv import load_dotenv
 
-          # Load environment variables from .env
-          load_dotenv()
+          # Explicitly set the working directory for .env
+          dotenv_path = os.path.join(os.getcwd(), '.env')
+          load_dotenv(dotenv_path=dotenv_path)
 
-          # Debugging: Print the loaded variables (except password)
+          # Debugging: Print environment variables (excluding password)
           print('Loaded DB_HOST:', os.getenv('DB_HOST'))
           print('Loaded DB_PORT:', os.getenv('DB_PORT'))
           print('Loaded DB_USER:', os.getenv('DB_USER'))
           print('Loaded DB_NAME:', os.getenv('DB_NAME'))
+          print('DB_PASSWORD is loaded:', bool(os.getenv('DB_PASSWORD')))  # True if loaded
+          "
+        shell: powershell
+
+      - name: Test Local Database Connection
+        run: |
+          python -c "
+          import psycopg2
+          import os
+          from dotenv import load_dotenv
+
+          # Load environment variables from .env
+          dotenv_path = os.path.join(os.getcwd(), '.env')
+          load_dotenv(dotenv_path=dotenv_path)
 
           try:
               conn = psycopg2.connect(
@@ -51,3 +69,6 @@ jobs:
           "
         shell: powershell
 
+      - name: Run Data Population Script
+        run: python scripts/populate_historical_data.py
+        shell: powershell
