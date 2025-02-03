@@ -2,8 +2,8 @@ name: Update Finance Data
 
 on:
   schedule:
-    # Run every day at 16:35
-    - cron: '35 16 * * *'
+    # Run every day at 23:00
+    - cron: '* 23 * * *'
 
 
 jobs:
