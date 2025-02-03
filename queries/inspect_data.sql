@@ -9,6 +9,16 @@ FROM prices
 GROUP BY symbol
 ORDER BY total_records DESC;
 
+-- Check for duplicate entries
+SELECT 
+    symbol, 
+    price_date, 
+    COUNT(*) as duplicate_count
+FROM prices
+GROUP BY symbol, price_date
+HAVING COUNT(*) > 1
+ORDER BY duplicate_count DESC;
+
 -- Check for missing dates in the last 30 days
 WITH RECURSIVE date_series AS (
     SELECT CURRENT_DATE - INTERVAL '30 days' as date

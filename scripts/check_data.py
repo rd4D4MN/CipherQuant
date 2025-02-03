@@ -68,6 +68,22 @@ def check_database():
                   headers=['Symbol', 'Date', 'Close', 'Volume'], 
                   tablefmt='psql'))
     
+    print("\n4. Data Quality Metrics:")
+    cur.execute("""
+        SELECT 
+            symbol, 
+            COUNT(*) as total_rows,
+            COUNT(*) FILTER (WHERE close_price IS NULL) as null_close,
+            COUNT(*) FILTER (WHERE volume = 0 OR volume IS NULL) as zero_volume
+        FROM prices
+        GROUP BY symbol
+        ORDER BY symbol;
+    """)
+    results = cur.fetchall()
+    print(tabulate(results, 
+                  headers=['Symbol', 'Total Rows', 'Null Close', 'Zero Volume'], 
+                  tablefmt='psql'))
+    
     cur.close()
     conn.close()
 

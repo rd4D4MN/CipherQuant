@@ -97,6 +97,21 @@ def validate_price_data(row, df, symbol, today):
         log(f"Debug - Validation error details: {str(e)}")
         return False, f"Validation error: {str(e)}"
 
+def log_data_quality(symbol):
+    try:
+        cur.execute("""
+            SELECT 
+                COUNT(*) as total_rows,
+                COUNT(*) FILTER (WHERE close_price IS NULL) as null_close,
+                COUNT(*) FILTER (WHERE volume = 0 OR volume IS NULL) as zero_volume
+            FROM prices
+            WHERE symbol = %s
+        """, (symbol,))
+        result = cur.fetchone()
+        log(f"Data quality for {symbol}: {result}")
+    except Exception as e:
+        log(f"Error logging data quality for {symbol}: {e}")
+
 for symbol in stocks:
     last_date = last_dates.get(symbol, None)
 
@@ -182,6 +197,8 @@ for symbol in stocks:
             log(f"⚠️ Error inserting {symbol} on {row.Index.date()}: {e}")
             conn.rollback()
             continue
+
+    log_data_quality(symbol)
 
 cur.close()
 conn.close()
