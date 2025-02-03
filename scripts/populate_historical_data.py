@@ -61,6 +61,42 @@ if today.hour < 22:  # If it's before market close in New York (22.00 NL time), 
     today = today - BDay(1)
 today = today.date()  # Convert to date only
 
+def validate_price_data(row, df, symbol, today):
+    """Validate a single row of price data with yfinance format"""
+    try:
+        date = row.Index.date()
+        if date > today:
+            return False, "Future date"
+        
+        # Extract raw numeric values from the DataFrame
+        values = {
+            'Open': float(df.loc[row.Index, 'Open']),
+            'High': float(df.loc[row.Index, 'High']),
+            'Low': float(df.loc[row.Index, 'Low']),
+            'Close': float(df.loc[row.Index, 'Close']),
+            'Volume': float(df.loc[row.Index, 'Volume'])
+        }
+        
+        # Debug log the actual numeric values
+        log(f"Debug - Row data for {symbol} on {date}:")
+        for field, value in values.items():
+            log(f"  {field}: {value}")
+        
+        # Validate price values
+        for field, value in values.items():
+            if field != 'Volume':
+                if not isinstance(value, (int, float)) or pd.isna(value) or value <= 0:
+                    return False, f"Invalid {field} price: {value}"
+            else:
+                if not isinstance(value, (int, float)) or pd.isna(value) or value < 0:
+                    return False, f"Invalid volume: {value}"
+        
+        return True, values
+        
+    except Exception as e:
+        log(f"Debug - Validation error details: {str(e)}")
+        return False, f"Validation error: {str(e)}"
+
 for symbol in stocks:
     last_date = last_dates.get(symbol, None)
 
@@ -90,49 +126,62 @@ for symbol in stocks:
     for attempt in range(MAX_RETRIES):
         try:
             df = yf.download(symbol, start=start_date, end=today)
+            
+            # Ensure DataFrame has numeric types
+            df = df.astype({
+                'Open': float,
+                'High': float,
+                'Low': float,
+                'Close': float,
+                'Volume': float
+            })
+            
+            # Debug log the DataFrame info
+            log(f"\nDebug - DataFrame info for {symbol}:")
+            log(f"Columns: {df.columns.tolist()}")
+            log(f"Shape: {df.shape}")
+            log(f"Types:\n{df.dtypes}")
+            
             break  # Success, exit retry loop
         except Exception as e:
             log(f"⚠️ Attempt {attempt+1} failed for {symbol}: {e}")
             time.sleep(5)  # Wait 5 seconds before retrying
     else:
         log(f"❌ Failed to fetch {symbol} after {MAX_RETRIES} attempts. Skipping...")
-        continue  # Skip this stock if API fails
+        continue
 
     if df.empty:
         log(f"⚠️ No new data for {symbol}. Skipping...")
         continue
 
-    # Standardize column names
-    df = df.rename(columns=lambda x: x.strip().replace(" ", "_").lower())
-
     # Insert new data into database
-    for row in df.itertuples(index=True, name="StockData"):
+    for row in df.itertuples():
         try:
-            # Ensure we are not inserting future dates
-            row_date = row.Index.date()
-            if row_date > today:
-                log(f"⚠️ Skipping future date {row_date} for {symbol}.")
+            is_valid, data = validate_price_data(row, df, symbol, today)
+            if not is_valid:
+                if isinstance(data, str):
+                    log(f"⚠️ Skipping invalid data for {symbol} on {row.Index.date()}: {data}")
                 continue
 
-            volume = getattr(row, "volume", None)
             cur.execute("""
                 INSERT INTO prices (symbol, price_date, open_price, high_price, low_price, close_price, volume, market_source)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, 'stock')
                 ON CONFLICT (symbol, price_date) DO NOTHING
             """, (
                 symbol,
-                row_date,
-                getattr(row, "open", None),
-                getattr(row, "high", None),
-                getattr(row, "low", None),
-                getattr(row, "close", None),
-                int(volume) if volume is not None else None
+                row.Index.date(),
+                data['Open'],
+                data['High'],
+                data['Low'],
+                data['Close'],
+                int(data['Volume'])
             ))
+            conn.commit()  # Commit each successful insert
+            
         except Exception as e:
-            log(f"⚠️ Error inserting {symbol} on {row_date}: {e}")
+            log(f"⚠️ Error inserting {symbol} on {row.Index.date()}: {e}")
             conn.rollback()
-
-    conn.commit()
+            continue
 
 cur.close()
 conn.close()
