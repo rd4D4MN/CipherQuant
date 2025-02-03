@@ -7,6 +7,11 @@ import time
 from dotenv import load_dotenv
 from datetime import datetime
 from pandas.tseries.offsets import BDay  # Business day offset
+import sys
+import io
+
+# Force UTF-8 encoding for stdout
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 # Set up logging
 logging.basicConfig(
