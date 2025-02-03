@@ -19,18 +19,7 @@ jobs:
       - name: Install Dependencies
         run: pip install yfinance psycopg2-binary python-dotenv
 
-        
-      - name: Load Environment Variables in Python
-        run: |
-          python -c "
-          from dotenv import load_dotenv
-          import os
-          load_dotenv()
-          print('✅ .env file loaded successfully.')
-          "
-      
-
-      - name: Test Local Database Connection
+      - name: Test Local Database Connection (Using dotenv)
         run: |
           python -c "
           import psycopg2
@@ -39,6 +28,12 @@ jobs:
 
           # Load environment variables from .env
           load_dotenv()
+
+          # Debugging: Print the loaded variables (except password)
+          print('Loaded DB_HOST:', os.getenv('DB_HOST'))
+          print('Loaded DB_PORT:', os.getenv('DB_PORT'))
+          print('Loaded DB_USER:', os.getenv('DB_USER'))
+          print('Loaded DB_NAME:', os.getenv('DB_NAME'))
 
           try:
               conn = psycopg2.connect(
@@ -54,3 +49,4 @@ jobs:
               print(f'❌ Failed to connect: {e}')
               exit(1)
           "
+        shell: pwsh
