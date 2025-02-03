@@ -49,4 +49,5 @@ jobs:
               print(f'❌ Failed to connect: {e}')
               exit(1)
           "
-        shell: pwsh
+        shell: powershell
+
