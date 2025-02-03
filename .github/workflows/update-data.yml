@@ -3,9 +3,10 @@ name: Update Finance Data
 on:
   workflow_dispatch:  # Allows manual trigger
 
+
 jobs:
   update-database:
-    runs-on: self-hosted  # Use your local runner instead of GitHub's cloud servers
+    runs-on: [self-hosted, update-data]  # Use your local runner, use update-data label
 
     steps:
       - name: Checkout Repository

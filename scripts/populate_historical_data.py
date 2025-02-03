@@ -55,8 +55,9 @@ cur.execute("SELECT symbol, MAX(price_date) FROM prices GROUP BY symbol;")
 last_dates = dict(cur.fetchall())  # Stores latest price_date for each stock
 
 # Determine today's date (handling market open cases)
-today = datetime.today()
-if today.hour < 16:  # If it's before market close, use the last business day
+today = datetime.today() #NL time
+
+if today.hour < 22:  # If it's before market close in New York (22.00 NL time), use the last business day
     today = today - BDay(1)
 today = today.date()  # Convert to date only
 
