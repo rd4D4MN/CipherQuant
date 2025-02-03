@@ -22,13 +22,27 @@ jobs:
       - name: Set UTF-8 Encoding (Windows Fix)
         run: chcp 65001
         shell: cmd
+      
+      - name: Copy .env File to Runner Directory
+        run: |
+          Copy-Item "$HOME/Documents/Projects/CipherQuant/.env" -Destination "$env:GITHUB_WORKSPACE/"
+        shell: powershell
+      
+      - name: Verify .env File Exists
+        run: Get-Content .env
+        shell: powershell
+        
 
       - name: Load Environment Variables and Test Database Connection
         run: |
           python -c "
           import os
+          import sys
           import psycopg2
           from dotenv import load_dotenv
+      
+          # Ensure UTF-8 encoding
+          sys.stdout.reconfigure(encoding='utf-8')
       
           # Ensure we are in the correct directory
           print('Current working directory:', os.getcwd())
@@ -67,7 +81,6 @@ jobs:
           "
         shell: powershell
       
-
       - name: Run Data Population Script
         run: python scripts/populate_historical_data.py
         shell: powershell
