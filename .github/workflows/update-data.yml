@@ -11,6 +11,10 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v2
 
+      - name: Set UTF-8 Encoding (Windows Fix)
+        run: chcp 65001
+        shell: cmd
+
       - name: Set Up Python
         uses: actions/setup-python@v3
         with:
@@ -18,20 +22,15 @@ jobs:
 
       - name: Install Dependencies
         run: pip install yfinance psycopg2-binary python-dotenv
-
-      - name: Set UTF-8 Encoding (Windows Fix)
-        run: chcp 65001
-        shell: cmd
       
+      - name: Mask DB Password in Logs (GitHub Actions Security)
+        run: echo "::add-mask::$(echo ${{ secrets.DB_PASSWORD }})"
+        shell: bash
+
       - name: Copy .env File to Runner Directory
         run: |
           Copy-Item "$HOME/Documents/Projects/CipherQuant/.env" -Destination "$env:GITHUB_WORKSPACE/"
         shell: powershell
-      
-      - name: Verify .env File Exists
-        run: Get-Content .env
-        shell: powershell
-        
 
       - name: Load Environment Variables and Test Database Connection
         run: |
@@ -46,10 +45,10 @@ jobs:
       
           # Ensure we are in the correct directory
           print('Current working directory:', os.getcwd())
-      
+
           # Explicitly set the path for .env
           dotenv_path = os.path.join(os.getcwd(), '.env')
-      
+
           # Check if .env exists before loading
           if os.path.exists(dotenv_path):
               print('✅ .env file found, loading...')
@@ -57,14 +56,14 @@ jobs:
           else:
               print('❌ ERROR: .env file NOT FOUND at:', dotenv_path)
               exit(1)
-      
+
           # Debugging: Print loaded environment variables (excluding password)
           print('Loaded DB_HOST:', os.getenv('DB_HOST'))
           print('Loaded DB_PORT:', os.getenv('DB_PORT'))
           print('Loaded DB_USER:', os.getenv('DB_USER'))
           print('Loaded DB_NAME:', os.getenv('DB_NAME'))
           print('DB_PASSWORD is loaded:', bool(os.getenv('DB_PASSWORD')))  # True if password exists
-      
+
           try:
               conn = psycopg2.connect(
                   host=os.getenv('DB_HOST'),
@@ -76,7 +75,9 @@ jobs:
               print('✅ Successfully connected to local PostgreSQL.')
               conn.close()
           except Exception as e:
-              print(f'❌ Failed to connect: {e}')
+              # Mask the password in logs before printing
+              error_message = str(e).replace(os.getenv('DB_PASSWORD', ''), '[HIDDEN]')
+              print(f'❌ Failed to connect: {error_message}')
               exit(1)
           "
         shell: powershell
