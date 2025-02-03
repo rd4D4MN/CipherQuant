@@ -2,6 +2,8 @@ name: Update Finance Data
 
 on:
   workflow_dispatch:  # Allows manual trigger
+  schedule:
+    - cron: '0 16 26 * *'  # Run every day at midnight
 
 
 jobs:
