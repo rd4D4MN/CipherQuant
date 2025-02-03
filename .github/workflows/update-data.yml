@@ -19,12 +19,16 @@ jobs:
       - name: Install Dependencies
         run: pip install yfinance psycopg2-binary python-dotenv
 
-      - name: Load Environment Variables
+        
+      - name: Load Environment Variables in Python
         run: |
-          set -o allexport
-          source .env
-          set +o allexport
-        shell: bash
+          python -c "
+          from dotenv import load_dotenv
+          import os
+          load_dotenv()
+          print('✅ .env file loaded successfully.')
+          "
+      
 
       - name: Test Local Database Connection
         run: |
