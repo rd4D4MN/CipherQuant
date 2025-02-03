@@ -57,8 +57,13 @@ secrets.yml
 *.dll
 *.so
 *.dylib
-
-
+cmd
+config
+queries\top_investors.sql
+tests\backend
+tests\frontend
+go.mod
+go.sum
 # Shell scripts
 scripts\create_issues.sh
 scripts\pipeline.py
