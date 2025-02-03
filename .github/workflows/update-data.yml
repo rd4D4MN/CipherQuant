@@ -32,6 +32,11 @@ jobs:
           Copy-Item "$HOME/Documents/Projects/CipherQuant/.env" -Destination "$env:GITHUB_WORKSPACE/"
         shell: powershell
 
+      - name: Set UTF-8 Encoding for PowerShell
+        run: |
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+        shell: powershell     
+
       - name: Load Environment Variables and Test Database Connection
         run: |
           python -c "
