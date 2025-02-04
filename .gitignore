@@ -60,8 +60,8 @@ secrets.yml
 cmd
 config
 queries\top_investors.sql
-src\tests\backend
-src\tests\frontend
+tests\backend
+tests\frontend
 go.mod
 go.sum
 # Shell scripts
