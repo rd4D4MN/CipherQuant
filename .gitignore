@@ -63,8 +63,8 @@ go.sum
 # Directories
 /cmd/
 /config/
-/tests/backend/*
-/tests/frontend/*
+/tests/backend/
+/tests/frontend/
 
 # Scripts
 /scripts/create_issues.sh
