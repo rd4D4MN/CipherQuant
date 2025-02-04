@@ -79,3 +79,6 @@ go.sum
 
 # Keep GitHub workflows
 !.github/workflows/update-data.yml
+
+# Docs
+/docs/
