@@ -57,24 +57,25 @@ secrets.yml
 *.dll
 *.so
 *.dylib
-cmd
-config
-queries\top_investors.sql
-tests\backend
-tests\frontend
 go.mod
 go.sum
-# Shell scripts
-scripts\create_issues.sh
-scripts\pipeline.py
-scripts\scraper.py
 
-# Backend
-src\backend\app.py
+# Directories
+/cmd/
+/config/
+/tests/backend/
+/tests/frontend/
 
-# Tests
-src\tests\backend
+# Scripts
+/scripts/create_issues.sh
+/scripts/pipeline.py
+/scripts/scraper.py
 
-# Queries
-queries\top_investors.sql
-queries\correlation_analysis.sql
+# Source files
+/src/backend/app.py
+
+# SQL
+/queries/top_investors.sql
+
+# Keep GitHub workflows
+!.github/workflows/update-data.yml
