@@ -60,8 +60,8 @@ secrets.yml
 cmd
 config
 queries\top_investors.sql
-tests\backend
-tests\frontend
+src\tests\backend
+src\tests\frontend
 go.mod
 go.sum
 # Shell scripts
@@ -73,7 +73,8 @@ scripts\scraper.py
 src\backend\app.py
 
 # Tests
-tests\backend
+src\tests\backend
 
 # Queries
 queries\top_investors.sql
+queries\correlation_analysis.sql
