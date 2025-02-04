@@ -1,15 +1,25 @@
 import React from 'react';
-import StrategyTable from './components/StrategyTable';
-import StrategyChart from './components/StrategyChart';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Navigation from './components/Navigation';
+import Dashboard from './pages/Dashboard';
+import StrategyAnalysis from './pages/StrategyAnalysis';
 import './styles/main.css';
 
 function App() {
   return (
-    <div className="App">
-      <h1>Trading Strategy Dashboard</h1>
-      <StrategyChart symbol="AAPL" strategy="RSI" />
-      <StrategyTable />
-    </div>
+    <Router>
+      <div className="App">
+        <Navigation />
+        <main className="main-content">
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/strategies" element={<StrategyAnalysis />} />
+            <Route path="/trades" element={<StrategyAnalysis />} />
+            <Route path="/settings" element={<Dashboard />} />
+          </Routes>
+        </main>
+      </div>
+    </Router>
   );
 }
 

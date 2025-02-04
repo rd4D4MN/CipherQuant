@@ -72,7 +72,7 @@ go.sum
 /scripts/scraper.py
 
 # Source files
-/src/backend/app.py
+#/src/backend/app.py
 
 # SQL
 /queries/top_investors.sql
