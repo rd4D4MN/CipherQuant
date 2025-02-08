@@ -5,7 +5,8 @@
 
 # CipherQuant
 
-CipherQuant is a comprehensive platform for crypto and finance data analysis and trading strategy backtesting. It integrates web scraping, API-based data ingestion, and advanced strategy engines to provide reliable insights and simulation tools.
+CipherQuant is a comprehensive platform for crypto and finance data analysis and trading strategy backtesting. It integrates web scraping, API-based data ingestion, and advanced strategy engines to provide reliable insights and simulation tools. 
+Details soon! Stay tuned!
 
 <!-- Badges -->
 <!-- <p align="center">
@@ -20,7 +21,7 @@ CipherQuant is a comprehensive platform for crypto and finance data analysis and
   <a href="https://docs.cipherquant.example.com" target="_blank">Documentation</a>
 </p> -->
 
-## Quick Start
+<!-- ## Quick Start
 
 To get started quickly with CipherQuant, follow these simple steps:
 
@@ -94,4 +95,4 @@ Interested in contributing? Please read our guidelines in [contributing](docs/so
 This project is open source. Details can be found in [licensed](docs/source/license.md).
 
 ## Contact
-For support or inquiries, please see [contact](docs/source/contact.md).
+For support or inquiries, please see [contact](docs/source/contact.md). -->
